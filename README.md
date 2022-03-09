@@ -18,8 +18,7 @@ Welcome Onboard fellow Students and Developers, This is where you can find resou
 * Submitting a fix
 * Proposing new features
 <br/><br/>
-**Contribution Guideline**
-<br/><br/>
+
 **Skills Used**:
 * Python
 * MySQL
