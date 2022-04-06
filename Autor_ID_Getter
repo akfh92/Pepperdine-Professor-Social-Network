@@ -1,0 +1,40 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import json
+import csv
+
+
+#Insert complete path to the excel file and index of the worksheet
+# df = pd.read_excel(r"C:Path to the excel", sheet_name='sheet1')
+# insert the name of the column as a string in brackets
+list1 = list(df['First Name'])
+list2 = list(df['Last Name'])
+list3 = []      #python list for links to each professor
+list4 = []
+authorIDlist=[]
+
+
+
+while True:
+    try:
+        list3.append("https://api.semanticscholar.org/graph/v1/author/search?query="+list1.pop(0)+"+"+list2.pop(0))
+    except IndexError:
+        break
+
+for i in range(51):
+    url = list3[i]
+    res = requests.get(url)
+    res.raise_for_status()
+    soup= BeautifulSoup(res.text,"lxml")
+    datas = soup.get_text()
+    person_dict = json.loads(datas)
+    person_num = person_dict['total']
+    if person_num <4:
+        for k in range(person_num):
+            authorIDlist.append({'authorID':person_dict['data'][k]['authorId'],'name':person_dict['data'][k]['name']})
+
+print(authorIDlist)
+df = pd.DataFrame.from_dict(authorIDlist)
+print(df)
+df.to_excel('authorID980-1078.xlsx')
