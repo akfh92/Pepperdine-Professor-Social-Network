@@ -1,0 +1,73 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import json
+import csv
+import mysql.connector
+
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="",
+  database=""
+)
+mydb.rollback()
+mycursor = mydb.cursor()
+
+df = pd.read_excel(r"C:\Users\Maro\Desktop\Backup master list.xlsx", sheet_name='Sheet1')
+authorIDlist=list(df['Author ID'])
+linkList=[]
+workList=[]
+# remove null from the authorID list
+newauthorIDlist = [x for x in authorIDlist if pd.isnull(x) == False]
+
+
+
+while True:
+    try:
+        linkList.append("https://api.semanticscholar.org/graph/v1/author/"+str(int(newauthorIDlist.pop(0)))+"?fields=url,papers")
+    except IndexError:
+        break
+
+
+
+for i in range(len(linkList)):
+    url = linkList.pop()
+    res = requests.get(url)
+    res.raise_for_status()
+    soup= BeautifulSoup(res.text,"lxml")
+    datas = soup.get_text()
+    data = datas
+    person_dict = json.loads(datas)
+    person_num = person_dict['authorId']
+    a = str(person_num)
+    print(a)
+    u = person_dict["url"]
+    ps = person_dict["papers"]
+
+    mycursor.execute("SELECT * FROM authors WHERE authorId = '" + a + "'")
+    rows = mycursor.fetchall()
+    if len(rows) == 0:
+        sql = "INSERT INTO authors (authorId, url) VALUES (%s, %s)"
+        val = (a, u)
+        mycursor.execute(sql, val)
+        mydb.commit()
+
+    for p in ps:
+        pc = mycursor.fetchall()
+        if len(pc) == 0 :
+            sql = "INSERT INTO papers (authorId, paperId, title) VALUES (%s, %s, %s)"
+            val = (a, p["paperId"], p["title"])
+            mycursor.execute(sql, val)
+            mydb.commit()
+
+    if len(linkList)%85==0:
+        print("length of Linklist:",len(linkList))
+        print("Code in sleep...")
+        time.sleep(600)
+
+
+
+
+mydb.close()
